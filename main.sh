@@ -29,6 +29,13 @@ has_current_task() {
     fi
 }
 
+print_current() {
+    local content=$(cat "$CURFILE")
+    local task="${content%%:*}"
+    local started="${content##*:}"
+    echo "${task} since $(date --rfc-3339=seconds --date=@$started)"
+}
+
 # COMMANDS #####################################################################
 
 start_cmd() {
@@ -46,16 +53,23 @@ start_cmd() {
 
 stop_cmd() {
     has_current_task || fail "no active task"
+    echo -n "stopped: "
+    print_current
     cat "$CURFILE" | sed -e "s/\$/:$(date +%s)/" >> "$DBFILE"
-    echo "" > "$CURFILE"
+    echo -n "" > "$CURFILE"
 }
 
 current_cmd() {
     has_current_task || fail "no active task"
-    local content=$(cat "$CURFILE")
-    local task="${content%%:*}"
-    local started="${content##*:}"
-    echo "currently: ${task} since $(date --rfc-3339=seconds --date=@$started)"
+    echo -n "currently: "
+    print_current
+}
+
+abort_cmd() {
+    has_current_task || fail "no active task"
+    echo -n "aborted: "
+    print_current
+    echo -n "" > "$CURFILE"
 }
 
 # PROCESSING STARTS HERE #######################################################
@@ -78,6 +92,9 @@ case "$cmd" in
         ;;
     current)
         current_cmd
+        ;;
+    abort)
+        abort_cmd
         ;;
     *)
         fail "not implemented: $cmd"
