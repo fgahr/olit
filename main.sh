@@ -19,6 +19,7 @@ is_valid_task() {
 }
 
 has_current_task() {
+    [[ ! -f $CURFILE ]] && return 1
     if [[ -n $(cat $CURFILE) ]]; then
         return 0
     else
@@ -27,20 +28,21 @@ has_current_task() {
 }
 
 start_cmd() {
+    [[ -z $1 ]] && fail "start: no task specified"
     local task="$1"
     if is_valid_task "$task"; then
         if has_current_task; then
             stop_cmd
         fi
-        echo "$task:$(date %s)" > "$CURFILE"
+        echo "$task:$(date +%s)" > "$CURFILE"
     else
-        fail "invalid task name: $task"
+        fail "start: invalid task name: $task"
     fi
 }
 
 stop_cmd() {
     has_current_task || fail "no active task"
-    cat "$CURFILE" | sed -e "s/\$/:$(date %s)/" >> "$DBFILE"
+    cat "$CURFILE" | sed -e "s/\$/:$(date +%s)/" >> "$DBFILE"
     echo "" > "$CURFILE"
 }
 
@@ -50,12 +52,12 @@ PROGNAME="$0"
 
 [[ -d $WORKDIR ]] || mkdir -p "$WORKDIR"
 
-[[ $# -eq 1 ]] && fail "no operation specified"
+[[ $# -eq 0 ]] && fail "no operation specified"
 
 cmd="$1"
 shift
 
-case cmd in
+case "$cmd" in
     start)
         start_cmd $@
         ;;
