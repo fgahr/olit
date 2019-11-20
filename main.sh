@@ -5,6 +5,8 @@ DBFILE="$WORKDIR/dbfile"
 CURFILE="$WORKDIR/current"
 PROGNAME="olit"
 
+# HELPER FUNCTIONS #############################################################
+
 fail() {
     echo "$PROGNAME: $@" 1>&2
     exit 1
@@ -27,6 +29,8 @@ has_current_task() {
     fi
 }
 
+# COMMANDS #####################################################################
+
 start_cmd() {
     [[ -z $1 ]] && fail "start: no task specified"
     local task="$1"
@@ -46,7 +50,15 @@ stop_cmd() {
     echo "" > "$CURFILE"
 }
 
-# PROCESSING STARTS HERE
+current_cmd() {
+    has_current_task || fail "no active task"
+    local content=$(cat "$CURFILE")
+    local task="${content%%:*}"
+    local started="${content##*:}"
+    echo "currently: ${task} since $(date --rfc-3339=seconds --date=@$started)"
+}
+
+# PROCESSING STARTS HERE #######################################################
 
 PROGNAME="$0"
 
@@ -63,6 +75,9 @@ case "$cmd" in
         ;;
     stop)
         stop_cmd
+        ;;
+    current)
+        current_cmd
         ;;
     *)
         fail "not implemented: $cmd"
