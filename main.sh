@@ -1,6 +1,7 @@
 #!/bin/bash
 
 WORKDIR="$HOME/.config/olit"
+LISTENDIR="$WORKDIR/listeners"
 DBFILE="$WORKDIR/dbfile"
 CURFILE="$WORKDIR/current"
 PROGNAME="olit"
@@ -29,11 +30,41 @@ has_current_task() {
     fi
 }
 
+set_current() {
+    local content="$1"
+    echo "$content" > "$CURFILE"
+    notify_listeners "started: "
+    echo -n "started: " && print_current
+}
+
+stop_current() {
+    has_current_task || return 1
+    notify_listeners "stopped: "
+    cat "$CURFILE" | sed -e "s/\$/:$(date +%s)/"
+}
+
 print_current() {
+    has_current_task || fail "print_current: no current task"
     local content=$(cat "$CURFILE")
     local task="${content%%:*}"
     local started="${content##*:}"
     echo "${task} since $(date --rfc-3339=seconds --date=@$started)"
+}
+
+notify_listeners() {
+    local message="$1"
+    [[ -d $LISTENDIR ]] || return 0 # No listeners
+
+    for pipe in $(find "$LISTENDIR" -type p); do
+        # Still connected? If not, remove the pipe.
+        local pid=$(basename "$pipe")
+        ps --pid="$pid" | grep "$PROGNAME" > /dev/null || rm "$pipe"
+
+        if [[ -p $pipe ]]; then
+            echo -n "$message" >> "$pipe"
+            print_current >> "$pipe"
+        fi
+    done
 }
 
 # COMMANDS #####################################################################
@@ -42,10 +73,8 @@ start_cmd() {
     [[ -z $1 ]] && fail "start: no task specified"
     local task="$1"
     if is_valid_task "$task"; then
-        if has_current_task; then
-            stop_cmd
-        fi
-        echo "$task:$(date +%s)" > "$CURFILE"
+        has_current_task && stop_cmd
+        set_current "$task:$(date +%s)"
     else
         fail "start: invalid task name: $task"
     fi
@@ -55,7 +84,7 @@ stop_cmd() {
     has_current_task || fail "no active task"
     echo -n "stopped: "
     print_current
-    cat "$CURFILE" | sed -e "s/\$/:$(date +%s)/" >> "$DBFILE"
+    stop_current >> "$DBFILE"
     echo -n "" > "$CURFILE"
 }
 
@@ -69,12 +98,29 @@ abort_cmd() {
     has_current_task || fail "no active task"
     echo -n "aborted: "
     print_current
+    notify_listeners "aborted: "
     echo -n "" > "$CURFILE"
+}
+
+listen_cmd() {
+    [[ -d $LISTENDIR ]] || mkdir -p "$LISTENDIR"
+    local pipe="$LISTENDIR/$$"
+    has_current_task && echo -n "current: " && print_current
+    mkfifo -m 600 "$pipe"
+    while true; do
+        cat "$pipe"
+    done
+    # while true; do
+    #     while read line; do
+    #         echo "$line"
+    #     done < "$pipe"
+    # done
+    rm "$pipe"
 }
 
 # PROCESSING STARTS HERE #######################################################
 
-PROGNAME="$0"
+PROGNAME=$(basename "$0")
 
 [[ -d $WORKDIR ]] || mkdir -p "$WORKDIR"
 
@@ -95,6 +141,9 @@ case "$cmd" in
         ;;
     abort)
         abort_cmd
+        ;;
+    listen)
+        listen_cmd
         ;;
     *)
         fail "not implemented: $cmd"
