@@ -6,7 +6,7 @@ DBFILE="$WORKDIR/dbfile"
 CURFILE="$WORKDIR/current"
 PROGNAME="olit"
 
-# HELPER FUNCTIONS #############################################################
+# GENERAL UTILITIES ############################################################
 
 fail() {
     echo "$PROGNAME: $@" 1>&2
@@ -14,7 +14,16 @@ fail() {
 }
 
 is_valid_task() {
-    if [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]; then
+    if [[ $1 =~ [a-zA-Z]+ ]]; then
+        if [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+is_quantifier() {
+    if [[ $1 =~ ^: ]]; then
         return 0
     else
         return 1
@@ -29,6 +38,8 @@ has_current_task() {
         return 1
     fi
 }
+
+# HELPER FUNCTIONS #############################################################
 
 set_current() {
     local content="$1"
@@ -113,6 +124,66 @@ listen_cmd() {
     rm "$pipe"
 }
 
+query_cmd() {
+    local task="$1"
+    shift
+    local param="$1"
+    quantifier="${param%%=*}"
+    local quantity
+    if [[ $param =~ = ]]; then
+        quantity="${param##*=}"
+    else
+        quantity="$2"
+    fi
+
+    local lower
+    local upper
+
+    case "$quantifier" in
+        :today)
+            lower=$(date --date="00:00:00" +%s)
+            upper=$(date --date="00:00:00 +1 day" +%s)
+            ;;
+        :day)
+            lower=$(date --date=$quantity +%s)
+            upper=$(date --date="$quantity +1 day" +%s)
+            ;;
+        :month)
+            lower=$(date --date=${quantity}-01 +%s)
+            upper=$(date --date="${quantity}-01 +1 month" +%s)
+            ;;
+        *)
+            fail "invalid quantifier: $quantifier"
+    esac
+
+    cat "$DBFILE" |
+        awk -F: "
+\$1 == \"$task\" && \$2 >= $lower && \$3 < $upper {
+    sum += \$3 - \$2
+}
+
+END {
+    printf(\"$task: %s\n\", format_duration(sum))
+}
+
+function format_duration(secs,   s,m,h) {
+    if (secs < 60) {
+        return sprintf(\"%ds\", secs)
+    }
+
+    s = secs % 60
+    m = (secs / 60) % 60
+
+    if (secs < 3600) {
+        return sprintf(\"%dm%ds\", m, s)
+    } else {
+        h = secs / 3600
+        return sprintf(\"%dh%dm%ds\", h, m, s)
+    }
+}"
+
+}
+
 # PROCESSING STARTS HERE #######################################################
 
 PROGNAME=$(basename "$0")
@@ -139,6 +210,9 @@ case "$cmd" in
         ;;
     listen)
         listen_cmd
+        ;;
+    query)
+        query_cmd $@
         ;;
     *)
         fail "not implemented: $cmd"
