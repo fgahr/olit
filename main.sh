@@ -110,11 +110,6 @@ listen_cmd() {
     while true; do
         cat "$pipe"
     done
-    # while true; do
-    #     while read line; do
-    #         echo "$line"
-    #     done < "$pipe"
-    # done
     rm "$pipe"
 }
 
