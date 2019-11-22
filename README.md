@@ -1,7 +1,8 @@
 # olit -- A simpler tilo
-Working on `tilo` I saw that much of the complexity in that project was due to
-a couple of fundamental design decisions, namely the client-server operation
-and the sqlite backend (with alternative backends possible).
+Working on [tilo](https://github.com/fgahr/tilo) I saw that much of the
+complexity in that project was due to a couple of fundamental design decisions,
+namely the client-server operation and the sqlite backend (with alternative
+backends possible).
 
 While I in no way regret those decisions, in part because the curiosity and
 ambition that led to them was one of the main motivations for the project as a
@@ -36,7 +37,7 @@ all of its utilities, is awesome.
 Would it be easier to write this program in Python? Absolutely. Would it be
 clearer and more concise? Maybe. Would I have had as much fun writing it? No.
 
-By the way, `tilo` said it took me about 4 hours to write this, a good part
+By the way, `tilo` said it took me about 5 hours to write this, a good part
 of which was spent consulting the `info` manual for `Bash`. Also, since the
 work was split between computers and I haven't implemented remote servers yet,
 I couldn't track it exactly.
@@ -44,7 +45,7 @@ I couldn't track it exactly.
 # Usage
 This section is relegated to the lower parts of this README, partly because
 I don't expect anyone to use it. Usage is very similar to `tilo`, output
-is slightly different. Some commands only make sense for client-server
+is quite reduced. Some commands only make sense for client-server
 interaction and are therefore omitted.
 
 For any further details, read the source code. I did my best to make it
