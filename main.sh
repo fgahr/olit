@@ -144,6 +144,11 @@ query_cmd() {
             lower=$(date --date="00:00:00" +%s)
             upper=$(date --date="00:00:00 +1 day" +%s)
             ;;
+        :this-month)
+            quantity=$(date +%Y-%m-01)
+            lower=$(date --date=$quantity +%s)
+            upper=$(date --date="$quantity +1 month" +%s)
+            ;;
         :day)
             lower=$(date --date=$quantity +%s)
             upper=$(date --date="$quantity +1 day" +%s)
@@ -151,6 +156,10 @@ query_cmd() {
         :month)
             lower=$(date --date=${quantity}-01 +%s)
             upper=$(date --date="${quantity}-01 +1 month" +%s)
+            ;;
+        :ever)
+            lower=0
+            upper=$(date --date=2100-01-01 +%s)
             ;;
         *)
             fail "invalid quantifier: $quantifier"
