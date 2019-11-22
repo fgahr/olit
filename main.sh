@@ -14,6 +14,8 @@ fail() {
 }
 
 is_valid_task() {
+    # Must be alphanumeric with possible dashes  and underscores but must
+    # contain at least one character.
     if [[ $1 =~ [a-zA-Z]+ ]]; then
         if [[ $1 =~ ^[a-zA-Z0-9_-]+$ ]]; then
             return 0
@@ -158,6 +160,8 @@ query_cmd() {
             upper=$(date --date="${quantity}-01 +1 month" +%s)
             ;;
         :ever)
+            # Can't make it properly unbounded without introducing another
+            # query script. These bounds seem reasonable for now.
             lower=0
             upper=$(date --date=2100-01-01 +%s)
             ;;
@@ -165,6 +169,8 @@ query_cmd() {
             fail "invalid quantifier: $quantifier"
     esac
 
+    # catting the file into awk is not necessary but the file
+    # might be visually lost when appended to the script block.
     cat "$DBFILE" |
         awk -F: "
 \$1 == \"$task\" && \$2 >= $lower && \$3 < $upper {
