@@ -41,6 +41,11 @@ has_current_task() {
     fi
 }
 
+cleanup() {
+    local maybe_pipe="$LISTENDIR/$$"
+    [[ -p $maybe_pipe ]] && rm "$maybe_pipe"
+}
+
 # HELPER FUNCTIONS #############################################################
 
 set_current() {
@@ -206,6 +211,9 @@ PROGNAME=$(basename "$0")
 [[ -d $WORKDIR ]] || mkdir -p "$WORKDIR"
 
 [[ $# -eq 0 ]] && fail "no operation specified"
+
+# Enforce cleanup on program exit
+trap cleanup EXIT
 
 cmd="$1"
 shift
